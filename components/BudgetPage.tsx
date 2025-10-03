@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import { MOCK_BUDGET_CATEGORIES, MOCK_TRANSACTIONS, SPENDING_CATEGORIES } from '../constants';
+import { SPENDING_CATEGORIES } from '../constants';
 import { BudgetCategory, Transaction } from '../types';
 
 const BudgetSummaryCard: React.FC<{ title: string; value: number; total?: number, className?: string }> = ({ title, value, total, className }) => (
@@ -59,9 +59,14 @@ const TransactionRow: React.FC<{ transaction: Transaction }> = ({ transaction })
 
 const availableColors = ['#EF4444', '#F97316', '#3B82F6', '#10B981', '#A855F7', '#6366F1', '#EC4899'];
 
-const BudgetPage: React.FC = () => {
-    const [categories, setCategories] = useState<BudgetCategory[]>(MOCK_BUDGET_CATEGORIES);
-    const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
+interface BudgetPageProps {
+    budgetData: { categories: BudgetCategory[], transactions: Transaction[] };
+    setBudgetData: React.Dispatch<React.SetStateAction<{ categories: BudgetCategory[], transactions: Transaction[] }>>;
+}
+
+const BudgetPage: React.FC<BudgetPageProps> = ({ budgetData, setBudgetData }) => {
+    const { categories, transactions } = budgetData;
+    
     const [showAddBudgetForm, setShowAddBudgetForm] = useState(false);
     const [showAddTransactionForm, setShowAddTransactionForm] = useState(false);
     
@@ -88,8 +93,10 @@ const BudgetPage: React.FC = () => {
     const COLORS = categories.map(cat => cat.color);
     
     const handleResetBudget = () => {
-        const resetCategories = categories.map(cat => ({ ...cat, budgeted: 0, spent: 0 }));
-        setCategories(resetCategories);
+        setBudgetData(prev => ({
+            ...prev,
+            categories: prev.categories.map(cat => ({ ...cat, budgeted: 0, spent: 0 }))
+        }));
     };
 
     const handleAddBudgetCategory = (e: React.FormEvent) => {
@@ -107,7 +114,7 @@ const BudgetPage: React.FC = () => {
                 spent: 0, 
                 color: availableColors[categories.length % availableColors.length],
             };
-            setCategories([...categories, newCategory]);
+            setBudgetData(prev => ({ ...prev, categories: [...prev.categories, newCategory] }));
             
             setMainCategory(Object.keys(SPENDING_CATEGORIES)[0]);
             setSubCategory('');
@@ -129,20 +136,22 @@ const BudgetPage: React.FC = () => {
                 category: newTransaction.category,
             };
             
-            setTransactions(prev => [transactionToAdd, ...prev]);
+            setBudgetData(prev => {
+                const newTransactions = [transactionToAdd, ...prev.transactions];
+                let newCategories = prev.categories;
 
-            // If it's an expense, update the spent amount for the category
-            if (transactionToAdd.type === 'debit') {
-                setCategories(prevCategories => 
-                    prevCategories.map(cat => {
+                if (transactionToAdd.type === 'debit') {
+                    newCategories = prev.categories.map(cat => {
                         if (cat.name === transactionToAdd.category) {
                             return { ...cat, spent: cat.spent + transactionToAdd.amount };
                         }
                         return cat;
-                    })
-                );
-            }
-            
+                    });
+                }
+                
+                return { categories: newCategories, transactions: newTransactions };
+            });
+
             // Reset form
             setNewTransaction({ description: '', amount: '', type: 'debit', category: '' });
             setShowAddTransactionForm(false);

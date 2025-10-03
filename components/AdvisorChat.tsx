@@ -1,6 +1,8 @@
 
+
 import React, { useState, useRef, useEffect } from 'react';
-import { getInvestmentAdvice } from '../services/geminiService';
+// Corrected import path from geminiService to aiAdvisorService.
+import { getInvestmentAdvice } from '../services/aiAdvisorService';
 import { ChatMessage } from '../types';
 
 const AiIcon: React.FC<{ className?: string }> = ({ className }) => (

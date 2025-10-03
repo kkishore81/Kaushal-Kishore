@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
@@ -8,15 +8,24 @@ import BudgetPage from './components/BudgetPage';
 import GoalsPage from './components/GoalsPage';
 import WillCreatorPage from './components/WillCreatorPage';
 import AuthPage from './components/AuthPage';
-import { Investment, Goal } from './types';
+import ProjectionPage from './components/ProjectionPage';
+import { Investment, Goal, BudgetCategory } from './types';
+import { MOCK_BUDGET_CATEGORIES, MOCK_TRANSACTIONS } from './constants';
 
-export type Page = 'dashboard' | 'investments' | 'advisor' | 'budget' | 'goals' | 'willCreator';
+export type Page = 'dashboard' | 'investments' | 'advisor' | 'budget' | 'goals' | 'willCreator' | 'projection';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activePage, setActivePage] = useState<Page>('dashboard');
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
+  
+  // Budget state is now managed here to be passed to ProjectionPage
+  const [budget, setBudget] = useState<{categories: BudgetCategory[], transactions: any[]}>({
+    categories: MOCK_BUDGET_CATEGORIES,
+    transactions: MOCK_TRANSACTIONS
+  });
+
 
   const pageTitles: Record<Page, string> = {
     dashboard: 'Dashboard',
@@ -25,7 +34,15 @@ const App: React.FC = () => {
     budget: 'My Budget & Transactions',
     goals: 'My Financial Goals',
     willCreator: 'Automatic Will Creator',
+    projection: 'Wealth Projection Simulator'
   };
+  
+  const monthlySavings = useMemo(() => {
+    const income = budget.transactions.filter(t => t.type === 'credit').reduce((sum, t) => sum + t.amount, 0);
+    const expenses = budget.transactions.filter(t => t.type === 'debit').reduce((sum, t) => sum + t.amount, 0);
+    // Assuming transactions are for one month for this calculation
+    return Math.max(0, income - expenses);
+  }, [budget.transactions]);
 
   const handleLoginSuccess = () => {
     setIsAuthenticated(true);
@@ -37,6 +54,7 @@ const App: React.FC = () => {
     // Clear user data on logout
     setInvestments([]);
     setGoals([]);
+    setBudget({categories: [], transactions: []});
   };
 
   const renderPage = () => {
@@ -48,11 +66,13 @@ const App: React.FC = () => {
       case 'advisor':
         return <AdvisorPage />;
       case 'budget':
-        return <BudgetPage />;
+        return <BudgetPage budgetData={budget} setBudgetData={setBudget} />;
       case 'goals':
         return <GoalsPage goals={goals} setGoals={setGoals} investments={investments} />;
       case 'willCreator':
         return <WillCreatorPage />;
+      case 'projection':
+        return <ProjectionPage investments={investments} monthlySavings={monthlySavings} />;
       default:
         return <Dashboard setActivePage={setActivePage}/>;
     }

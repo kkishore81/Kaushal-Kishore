@@ -58,6 +58,11 @@ export interface Goal {
     // linkedInvestmentIds: string[];
 }
 
+export interface ProjectionDataPoint {
+    year: number;
+    value: number;
+}
+
 // Types for Will Creator
 export interface Executor {
     name: string;
